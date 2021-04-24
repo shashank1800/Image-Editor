@@ -12,6 +12,7 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.GetContent
 import androidx.activity.viewModels
@@ -46,21 +47,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
             it?.let {
                 viewModel.isImageAvailable.set(true)
                 binding.imageView.setImageURI(it)
-                selectedImageBitmap = (binding.imageView.drawable as BitmapDrawable).bitmap
-                canvasBitmap = Bitmap.createBitmap(
-                    selectedImageBitmap.width,
-                    selectedImageBitmap.height,
-                    Bitmap.Config.ARGB_8888
-                )
 
-                right = selectedImageBitmap.width - 200f
-                bottom = selectedImageBitmap.height - 200f
-                drawCropLine()
-
+                selectedImageChanged()
             }
         })
-
-        binding.imageView.setOnTouchListener(this)
 
         initOnClickListener()
     }
@@ -93,39 +83,77 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
             binding.btnFlipYAxis.id -> {
                 val bitmap = (binding.imageView.drawable as BitmapDrawable).bitmap
                 binding.imageView.setImageBitmap(flipBitmap(bitmap, FLIP_HORIZONTAL))
+
+                selectedImageChanged()
             }
 
             binding.btnRotateLeft.id -> {
                 val bitmap = (binding.imageView.drawable as BitmapDrawable).bitmap
                 binding.imageView.setImageBitmap(rotateBitmap(bitmap, ROTATE_LEFT))
+                selectedImageChanged()
             }
 
             binding.btnRotateRight.id -> {
                 val bitmap = (binding.imageView.drawable as BitmapDrawable).bitmap
                 binding.imageView.setImageBitmap(rotateBitmap(bitmap, ROTATE_RIGHT))
+
+                selectedImageChanged()
             }
 
             binding.btnCrop.id -> {
-                viewModel.isCropEnabled.set(true)
+
+                if (selectedImageBitmap.width > 200 && selectedImageBitmap.height > 200) {
+                    selectedImageChanged()
+                    drawCropLine()
+
+                    viewModel.isCropEnabled.set(true)
+                    binding.imageView.setOnTouchListener(this)
+                } else {
+                    Toast.makeText(this, "Size of image is too less to crop", Toast.LENGTH_SHORT)
+                        .show()
+                }
             }
 
             binding.btnCropSubmit.id -> {
-                viewModel.isCropEnabled.set(false)
 
-                selectedImageBitmap = Bitmap.createBitmap(
-                    selectedImageBitmap,
-                    left.toInt(),
-                    top.toInt(),
-                    (right - left).toInt(),
-                    (bottom - top).toInt()
-                )
+                val ratio = getRatioOfWH()
+                if (ratio < 2) {
+                    viewModel.isCropEnabled.set(false)
+                    binding.imageView.setOnTouchListener(null)
 
-                right = selectedImageBitmap.width - 200f
-                bottom = selectedImageBitmap.height - 200f
+                    selectedImageBitmap = Bitmap.createBitmap(
+                        selectedImageBitmap,
+                        left.toInt(),
+                        top.toInt(),
+                        (right - left).toInt(),
+                        (bottom - top).toInt()
+                    )
 
-                binding.imageView.setImageBitmap(selectedImageBitmap)
+                    right = if (left > (selectedImageBitmap.width - MIN_WIDTH))
+                        left + MIN_WIDTH
+                    else
+                        selectedImageBitmap.width - MIN_WIDTH
+
+                    bottom = if (top > (selectedImageBitmap.height - MIN_WIDTH))
+                        top + MIN_WIDTH
+                    else
+                        selectedImageBitmap.height - MIN_WIDTH
+
+                    binding.imageView.setImageBitmap(selectedImageBitmap)
+                } else {
+                    Toast.makeText(this, "Ratio should not be ", Toast.LENGTH_SHORT).show()
+                }
             }
         }
+    }
+
+    private fun getRatioOfWH(): Int {
+        val width = abs(right - left)
+        val height = abs(bottom - top)
+
+        return if (width < height)
+            (height / width).toInt()
+        else (width / height).toInt()
     }
 
 
@@ -137,6 +165,34 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
         ActivityResultContracts.TakePicture()
     ) {
 
+    }
+
+    private fun selectedImageChanged() {
+        selectedImageBitmap = (binding.imageView.drawable as BitmapDrawable).bitmap
+        canvasBitmap = Bitmap.createBitmap(
+            selectedImageBitmap.width,
+            selectedImageBitmap.height,
+            Bitmap.Config.ARGB_8888
+        )
+
+        val smallerSide =
+            if (selectedImageBitmap.width < selectedImageBitmap.height) selectedImageBitmap.width else selectedImageBitmap.height
+
+        left = (smallerSide / 2 - smallerSide / 4).toFloat()
+        right = (selectedImageBitmap.width - smallerSide / 4).toFloat()
+
+        top = (smallerSide / 2 - smallerSide / 4).toFloat()
+        bottom = (selectedImageBitmap.height - smallerSide / 4).toFloat()
+//
+//        right = if(left > (selectedImageBitmap.width - MIN_WIDTH))
+//            left + MIN_WIDTH
+//        else
+//            selectedImageBitmap.width - MIN_WIDTH
+//
+//        bottom = if(top > (selectedImageBitmap.height - MIN_WIDTH))
+//            top + MIN_WIDTH
+//        else
+//            selectedImageBitmap.height - MIN_WIDTH
     }
 
     private fun drawCropLine() {
@@ -163,20 +219,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
 
         when (view.id) {
             binding.imageView.id -> when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    Log.i("press", "ACTION_DOWN ${event.x} - ${event.y}")
-                    startEvent = PointXY(event.x, event.y)
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    Log.i("press", "ACTION_MOVE ${event.x} - ${event.y}")
-                }
-                MotionEvent.ACTION_UP -> {
-                    Log.i("press", "ACTION_UP ${event.x} - ${event.y}")
-                    changeCoordinateWhichIsNear(PointXY(event.x, event.y))
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    Log.i("press", "ACTION_CANCEL ${event.x} - ${event.y}")
-                }
+                MotionEvent.ACTION_DOWN -> startEvent = PointXY(event.x, event.y)
+                MotionEvent.ACTION_UP -> changeCoordinateWhichIsNear(PointXY(event.x, event.y))
             }
         }
         return true
@@ -195,33 +239,43 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
 
             /** Check which line is nearer
              */
-            if (deltaLeft < deltaRight){
-                val displacement = startEvent.x - endEvent.x
-                if (left > (right - displacement))
-                    left = right - 100
+            if (deltaLeft < deltaRight) {
+                val displacement = endEvent.x - startEvent.x
+                if (left + MIN_WIDTH < (right - displacement))
+                    left += displacement
                 else
-                    left -= displacement
-            }
-            else {
+                    left = right - MIN_WIDTH
+            } else {
                 val displacement = startEvent.x - endEvent.x
-                if (left > (right - displacement))
-                    right = left + 100
-                else
+                if (left + MIN_WIDTH < (right - displacement))
                     right -= displacement
+                else
+                    right = left + MIN_WIDTH
+
             }
 
         } else {
             Log.i("drag", "y axis")
+            /** Check which line is nearer
+             */
 
             val deltaTop = abs(startEvent.y - top)
             val deltaBottom = abs(startEvent.y - bottom)
 
-            /** Check which line is nearer
-             */
-            if (deltaTop < deltaBottom)
-                top -= startEvent.y - endEvent.y
-            else
-                bottom -= startEvent.y - endEvent.y
+            if (deltaTop < deltaBottom) {
+                val displacement = endEvent.y - startEvent.y
+                if (top + MIN_WIDTH < (bottom - displacement))
+                    top += displacement
+                else
+                    top = bottom - MIN_WIDTH
+            } else {
+                val displacement = startEvent.y - endEvent.y
+                if (top + MIN_WIDTH < (bottom - displacement))
+                    bottom -= displacement
+                else
+                    bottom = top + MIN_WIDTH
+
+            }
         }
 
         drawCropLine()
@@ -242,15 +296,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
         background.color = Color.parseColor("#E2303030")
 
         linePaint.strokeWidth = 20f
-
-        //        canvas.drawRect(
-//            0f,
-//            0f,
-//            bitmap.width.toFloat(),
-//            bitmap.height.toFloat(),
-//            background
-//        )
-
     }
 
     private fun initOnClickListener() {
@@ -271,5 +316,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
 
         const val ROTATE_LEFT = -90f
         const val ROTATE_RIGHT = 90f
+
+        const val MIN_WIDTH = 200f
     }
 }
