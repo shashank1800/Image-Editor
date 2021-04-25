@@ -27,7 +27,7 @@
         style="@style/TextAppearance.AppCompat.Body1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="- To show EXIF data in recycler view, used my open-source generic adapter library"
+        android:text="- To show EXIF data in recycler view, used my open-source generic recycler adapter library"
         android:textSize="16sp" />
 
     <TextView
