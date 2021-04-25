@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Image Editor</string>
+    <string name="app_info">App info</string>
+    <string name="crop">Crop</string>
+    <string name="choose_image_from_gallery">Choose image from gallery</string>
+    <string name="night_mode">Night Mode</string>
+    <string name="light_mode">Light Mode</string>
+    <string name="app_information">App information</string>
 </resources>

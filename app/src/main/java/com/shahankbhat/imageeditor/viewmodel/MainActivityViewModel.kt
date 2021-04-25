@@ -14,4 +14,6 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     var isImageAvailable = ObservableBoolean(false)
     var isCropEnabled = ObservableBoolean(false)
 
+    val isDarkModeEnabled = ObservableBoolean(false)
+
 }

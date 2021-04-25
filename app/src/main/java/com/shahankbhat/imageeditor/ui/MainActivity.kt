@@ -1,6 +1,8 @@
 package com.shahankbhat.imageeditor.ui
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.SharedPreferences
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -11,21 +13,26 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.GetContent
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.databinding.DataBindingUtil
 import androidx.exifinterface.media.ExifInterface
+import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
+import com.livinglifetechway.quickpermissions_kotlin.runWithPermissions
 import com.shahankbhat.imageeditor.PointXY
 import com.shahankbhat.imageeditor.R
+import com.shahankbhat.imageeditor.bottom_sheet.AppInformationBottomSheetDialog
+import com.shahankbhat.imageeditor.bottom_sheet.ExifInformationBottomSheetDialog
 import com.shahankbhat.imageeditor.databinding.ActivityMainBinding
 import com.shahankbhat.imageeditor.deltaX
 import com.shahankbhat.imageeditor.deltaY
@@ -33,7 +40,7 @@ import com.shahankbhat.imageeditor.util.EditorFunctions.flipBitmap
 import com.shahankbhat.imageeditor.util.EditorFunctions.rotateBitmap
 import com.shahankbhat.imageeditor.util.saveBitmapToStorage
 import com.shahankbhat.imageeditor.viewmodel.MainActivityViewModel
-import java.io.*
+import java.io.IOException
 import kotlin.math.abs
 
 
@@ -43,12 +50,16 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
     private val viewModel: MainActivityViewModel by viewModels()
     private lateinit var selectedImageBitmap: Bitmap
     private lateinit var canvasBitmap: Bitmap
-    private lateinit var exifInterface : ExifInterface
+    private lateinit var exifInterface: ExifInterface
+    private lateinit var sharedPreferences: SharedPreferences
 
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+
         binding.viewModel = viewModel
 
         viewModel.imageUri.observe(this, {
@@ -66,7 +77,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
-    fun getExifInformation(uri: Uri?){
+    fun getExifInformation(uri: Uri?) {
         try {
             uri?.let { url ->
                 val inOutStream = contentResolver.openInputStream(url)
@@ -74,7 +85,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
                     exifInterface = ExifInterface(it)
                 }
             }
-        } catch (ex : IOException) { }
+        } catch (ex: IOException) {
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -85,18 +97,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
                 getContent.launch("image/*")
             }
 
-            binding.btnCamera.id -> {
-                val file = File(filesDir, IMAGES_FOLDER_NAME)
-                if (!file.exists())
-                    file.mkdir()
-
-                viewModel.imageUri.value = FileProvider.getUriForFile(
-                    this,
-                    applicationContext.packageName + ".provider",
-                    file
-                )
-                takePicture.launch(viewModel.imageUri.value)
-            }
 
             binding.btnFlipXAxis.id -> {
                 val bitmap = (binding.imageView.drawable as BitmapDrawable).bitmap
@@ -132,8 +132,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
                     viewModel.isCropEnabled.set(true)
                     binding.imageView.setOnTouchListener(this)
                 } else {
-                    Toast.makeText(this, "Size of image is too less to crop", Toast.LENGTH_SHORT)
-                        .show()
+                    Snackbar.make(binding.root, "Size of image is too less to crop", Snackbar.LENGTH_SHORT).show()
                 }
             }
 
@@ -144,13 +143,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
                     viewModel.isCropEnabled.set(false)
                     binding.imageView.setOnTouchListener(null)
 
-                    if(left.toInt() < 0)
+                    if (left.toInt() < 0)
                         left = 0f
-                    if(top.toInt() < 0)
+                    if (top.toInt() < 0)
                         top = 0f
-                    if(right > selectedImageBitmap.width)
+                    if (right > selectedImageBitmap.width)
                         right = selectedImageBitmap.width.toFloat()
-                    if(bottom > selectedImageBitmap.height)
+                    if (bottom > selectedImageBitmap.height)
                         bottom = selectedImageBitmap.height.toFloat()
 
                     selectedImageBitmap = Bitmap.createBitmap(
@@ -173,12 +172,41 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
 
                     binding.imageView.setImageBitmap(selectedImageBitmap)
                 } else {
-                    Toast.makeText(
-                        this,
-                        "Height to Width ratio should be below 3",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Snackbar.make(binding.root, "Height to Width ratio should be below 3", Snackbar.LENGTH_SHORT).show()
                 }
+            }
+
+            binding.btnDarkMode.id -> {
+                viewModel.isDarkModeEnabled.set(false)
+                AppCompatDelegate.setDefaultNightMode(
+                    AppCompatDelegate.MODE_NIGHT_NO
+                )
+            }
+
+            binding.btnLightMode.id -> {
+                viewModel.isDarkModeEnabled.set(true)
+                AppCompatDelegate.setDefaultNightMode(
+                    AppCompatDelegate.MODE_NIGHT_YES
+                )
+            }
+
+            binding.btnSave.id -> {
+
+                runWithPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE){
+                    saveBitmapToStorage(
+                        selectedImageBitmap,
+                        "Image-Editor-${System.currentTimeMillis()}"
+                    )
+                    viewModel.isImageAvailable.set(false)
+                    viewModel.isCropEnabled.set(false)
+                    viewModel.imageUri.value = null
+                }
+
+            }
+
+            binding.btnInfo.id -> {
+                val bottomSheet = ExifInformationBottomSheetDialog(exifInterface)
+                bottomSheet.show(supportFragmentManager, bottomSheet.tag)
             }
         }
     }
@@ -195,12 +223,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
 
     private val getContent = registerForActivityResult(GetContent()) { uri: Uri? ->
         viewModel.imageUri.value = uri
-    }
-
-    private val takePicture = registerForActivityResult(
-        ActivityResultContracts.TakePicture()
-    ) {
-
     }
 
     private fun selectedImageChanged() {
@@ -225,11 +247,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
         top = (centerY - smallerSideByThree).toFloat()
         bottom = (centerY + smallerSideByThree).toFloat()
 
-//        left = (smallerSide / 2 - smallerSide / 4).toFloat()
-//        right = (selectedImageBitmap.width - smallerSide / 4).toFloat()
-//
-//        top = (smallerSide / 2 - smallerSide / 4).toFloat()
-//        bottom = (selectedImageBitmap.height - smallerSide / 4).toFloat()
     }
 
     private fun drawCropLine() {
@@ -239,17 +256,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
             Bitmap.Config.ARGB_8888
         )
         val canvas = Canvas(canvasBitmap)
-//        canvas.drawRect(
-//            left,
-//            top,
-//            right,
-//            bottom,
-//            linePaint
-//        )
-
         canvas.drawRect(0f, 0f, left, selectedImageBitmap.height.toFloat(), background)
         canvas.drawRect(left, 0f, selectedImageBitmap.width.toFloat(), top, background)
-        canvas.drawRect(right, top, selectedImageBitmap.width.toFloat(), selectedImageBitmap.height.toFloat(), background)
+        canvas.drawRect(
+            right,
+            top,
+            selectedImageBitmap.width.toFloat(),
+            selectedImageBitmap.height.toFloat(),
+            background
+        )
         canvas.drawRect(left, bottom, right, selectedImageBitmap.height.toFloat(), background)
 
         val newBitmap = BitmapDrawable(Resources.getSystem(), canvasBitmap)
@@ -276,8 +291,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
          */
         if (startEvent.deltaX(endEvent) > startEvent.deltaY(endEvent)) {
             Log.i("drag", "x axis")
-
-            Log.i("size", "${canvasBitmap.width} - ${selectedImageBitmap.width}")
 
             val deltaLeft = abs(startEvent.x - left)
             val deltaRight = abs(startEvent.x - right)
@@ -328,24 +341,19 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
 
     private lateinit var startEvent: PointXY
 
-    var left = 200f
-    var top = 200f
-    var right = 200f
-    var bottom = 200f
+    private var left = 200f
+    private var top = 200f
+    private var right = 200f
+    private var bottom = 200f
 
     private var background = Paint()
-//    private var background = Paint()
 
     init {
-        background.color = Color.parseColor("#72050505")
-//        background.color = Color.parseColor("#E2303030")
-
-//        linePaint.strokeWidth = 20f
+        background.color = Color.parseColor("#BF171717")
     }
 
     private fun initOnClickListener() {
         binding.btnGallery.setOnClickListener(this)
-        binding.btnCamera.setOnClickListener(this)
 
         binding.btnFlipXAxis.setOnClickListener(this)
         binding.btnFlipYAxis.setOnClickListener(this)
@@ -353,6 +361,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
         binding.btnRotateRight.setOnClickListener(this)
         binding.btnCrop.setOnClickListener(this)
         binding.btnCropSubmit.setOnClickListener(this)
+
+        binding.btnSave.setOnClickListener(this)
+        binding.btnInfo.setOnClickListener(this)
+        binding.btnLightMode.setOnClickListener(this)
+        binding.btnDarkMode.setOnClickListener(this)
     }
 
     companion object {
@@ -375,9 +388,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
                 ) { dialog, _ ->
                     dialog.dismiss()
 
-                    saveBitmapToStorage(selectedImageBitmap, "Image-Editor-${System.currentTimeMillis()}")
+                    saveBitmapToStorage(
+                        selectedImageBitmap,
+                        "Image-Editor-${System.currentTimeMillis()}"
+                    )
                     viewModel.isImageAvailable.set(false)
                     viewModel.isCropEnabled.set(false)
+                    viewModel.imageUri.value = null
                 }
                 .setNegativeButton(
                     "Discard"
@@ -385,6 +402,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
                     dialog.dismiss()
                     viewModel.isImageAvailable.set(false)
                     viewModel.isCropEnabled.set(false)
+                    viewModel.imageUri.value = null
                 }
 
             materialAlertDialogBuilder.show()
@@ -393,7 +411,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, View.OnTouchList
         }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
 
+        menuInflater.inflate(R.menu.main_menu, menu)
 
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        val appInfo = AppInformationBottomSheetDialog()
+        appInfo.show(supportFragmentManager, appInfo.tag)
+
+        return super.onOptionsItemSelected(item)
+    }
 
 }

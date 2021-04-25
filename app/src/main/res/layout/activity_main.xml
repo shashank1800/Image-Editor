@@ -21,34 +21,105 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/constraintLayout"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
             android:visibility="@{viewModel.isImageAvailable() ? View.GONE : View.VISIBLE }"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
+
             <ImageView
                 android:id="@+id/btn_gallery"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_gallery"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@+id/btn_camera"
-                app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <ImageView
-                android:id="@+id/btn_camera"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:src="@drawable/ic_camera"
-                app:layout_constraintBottom_toBottomOf="@+id/btn_gallery"
+                app:layout_constraintVertical_chainStyle="packed"
+                app:layout_constraintBottom_toTopOf="@+id/textView3"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.5"
-                app:layout_constraintStart_toEndOf="@+id/btn_gallery"
-                app:layout_constraintTop_toTopOf="@+id/btn_gallery" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/linearLayout"
+                tools:ignore="ContentDescription" />
+
+            <TextView
+                android:id="@+id/textView3"
+                style="@style/TextAppearance.AppCompat.Body1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:text="@string/choose_image_from_gallery"
+                android:textAlignment="center"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/btn_gallery" />
+
+            <LinearLayout
+                android:id="@+id/linearLayout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <LinearLayout
+                    android:id="@+id/btn_dark_mode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    tools:ignore="UseCompoundDrawables">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginLeft="10dp"
+                        android:padding="4dp"
+                        android:src="@drawable/ic_baseline_light_mode_24"
+                        android:visibility="@{viewModel.isDarkModeEnabled() ? View.VISIBLE : View.GONE}"
+                        tools:ignore="ContentDescription" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="@string/light_mode"
+                        android:textStyle="bold"
+                        android:visibility="@{viewModel.isDarkModeEnabled() ? View.VISIBLE : View.GONE}" />
+
+                </LinearLayout>
+
+
+                <LinearLayout
+                    android:id="@+id/btn_light_mode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    tools:ignore="UseCompoundDrawables">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginLeft="10dp"
+                        android:padding="4dp"
+                        android:src="@drawable/ic_baseline_dark_mode_24"
+                        android:visibility="@{!viewModel.isDarkModeEnabled() ? View.VISIBLE : View.GONE}" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="@string/night_mode"
+                        android:textStyle="bold"
+                        android:visibility="@{!viewModel.isDarkModeEnabled() ? View.VISIBLE : View.GONE}" />
+
+                </LinearLayout>
+
+
+            </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -60,6 +131,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
+
             <ImageView
                 android:id="@+id/imageView"
                 android:layout_width="0dp"
@@ -69,19 +141,50 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                tools:ignore="ContentDescription" />
 
             <ImageView
                 android:id="@+id/canvas"
-                android:visibility="@{viewModel.isCropEnabled ? View.VISIBLE : View.GONE}"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_marginTop="8dp"
+                android:visibility="@{viewModel.isCropEnabled ? View.VISIBLE : View.GONE}"
                 app:layout_constraintBottom_toTopOf="@+id/horizontalScrollView"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                tools:ignore="ContentDescription"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="@{!viewModel.isCropEnabled ? View.VISIBLE : View.INVISIBLE}"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+
+                <ImageView
+                    android:id="@+id/btn_info"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginLeft="10dp"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_info"
+                    tools:ignore="ContentDescription"/>
+
+                <ImageView
+                    android:id="@+id/btn_save"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginLeft="10dp"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_save"
+                    tools:ignore="ContentDescription"/>
+            </LinearLayout>
 
 
             <HorizontalScrollView
@@ -93,54 +196,59 @@
                 app:layout_constraintStart_toStartOf="parent">
 
                 <LinearLayout
-                    android:visibility="@{!viewModel.isCropEnabled ? View.VISIBLE : View.INVISIBLE}"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_margin="10dp"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:visibility="@{!viewModel.isCropEnabled ? View.VISIBLE : View.INVISIBLE}">
 
                     <ImageView
                         android:id="@+id/btn_crop"
                         android:layout_width="60dp"
                         android:layout_height="60dp"
                         android:padding="10dp"
-                        android:src="@drawable/ic_crop" />
+                        android:src="@drawable/ic_crop"
+                        tools:ignore="ContentDescription"/>
 
                     <ImageView
                         android:id="@+id/btn_flip_x_axis"
                         android:layout_width="60dp"
                         android:layout_height="60dp"
                         android:padding="10dp"
-                        android:src="@drawable/ic_flip_x" />
+                        android:src="@drawable/ic_flip_x"
+                        tools:ignore="ContentDescription" />
 
                     <ImageView
                         android:id="@+id/btn_flip_y_axis"
                         android:layout_width="60dp"
                         android:layout_height="60dp"
-                        android:rotation="90"
-                        android:padding="10dp"
+                        android:layout_marginStart="10dp"
                         android:layout_marginLeft="10dp"
+                        android:padding="10dp"
+                        android:rotation="90"
                         android:src="@drawable/ic_flip_x"
-                        android:layout_marginStart="10dp" />
+                        tools:ignore="ContentDescription"/>
 
                     <ImageView
                         android:id="@+id/btn_rotate_left"
                         android:layout_width="60dp"
                         android:layout_height="60dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginLeft="10dp"
                         android:padding="10dp"
                         android:scaleX="-1"
-                        android:layout_marginLeft="10dp"
                         android:src="@drawable/ic_rotation_right"
-                        android:layout_marginStart="10dp" />
+                        tools:ignore="ContentDescription"/>
 
                     <ImageView
                         android:id="@+id/btn_rotate_right"
                         android:layout_width="60dp"
                         android:layout_height="60dp"
-                        android:padding="10dp"
+                        android:layout_marginStart="10dp"
                         android:layout_marginLeft="10dp"
+                        android:padding="10dp"
                         android:src="@drawable/ic_rotation_right"
-                        android:layout_marginStart="10dp" />
+                        tools:ignore="ContentDescription"/>
 
                 </LinearLayout>
 
@@ -157,7 +265,7 @@
                 android:backgroundTint="#00ACEA"
                 android:drawableStart="@drawable/ic_check_mark"
                 android:drawableLeft="@drawable/ic_check_mark"
-                android:text="Crop"
+                android:text="@string/crop"
                 android:textColor="#fff"
                 android:visibility="@{viewModel.isCropEnabled ? View.VISIBLE : View.GONE}"
                 app:layout_constraintEnd_toEndOf="parent"
